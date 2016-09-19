@@ -15,19 +15,25 @@ classoption: a4paper
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, fig.width=6, fig.height=4, fig.align='center')
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, fig.width=5, fig.height=3, fig.align='center')
 
 ```
 
 ## Executive Summary
 
-In this analysis the effect of transmission (manual or automatic) on fuel efficiency is evaluated. 
+In this analysis the effect of transmission (manual or automatic) on fuel efficiency is evaluated. The analysis shows that manual transmission leads to a better mileage than automatic transmission. And the model that shows the best fit is the one that has factors transmission, vehicle weight, and quarter mile time.
 
-## Processing
+## Data Processing
 
 The collected data (Appendix A - Table 1) consists of 32 automobile models with some of their characteristics measured. 
 
+Two questions must be answered:
 
+\begin{center}
+Is an automatic or manual transmission better for MPG?
+
+Quantify the MPG difference between automatic and manual transmissions.
+\end{center}
 
 ```{r init}
 
@@ -48,8 +54,8 @@ options(xtable.comment = FALSE, xtable.booktabs = TRUE)
 
 ```
 
-
 ## Exploratory data analysis 
+
 
 
 
@@ -60,8 +66,6 @@ mtcars$am <- factor(mtcars$am, levels = c(0, 1),
                     labels = c("auto", "manual"))
 mtcars$vs <- factor(mtcars$vs, levels = c(0, 1),
                     labels = c("v", "straight"))
-# Create a new variable for gross power/weight ratio
-mtcars$pwr <- mtcars$hp/mtcars$wt
 
 g <- ggplot(mtcars, aes(x = wt, y = mpg))
 g <- g + geom_point(aes(color = am))
@@ -76,11 +80,73 @@ g
 
 In the chart above is shown that the mean gas mileage of cars with manual transmission is higher compared to cars with automatic transmission. It can also be seen that there is a negative correlation between the fuel efficiency (gas mileage) and the weight of the vehicle. So other factors must be considered in the fitting model in order to have a better understanding of the impact of transmission on fuel efficiency.
 
+## Multivariate Regression
+
+According to Henderson and Velleman (1981) the best fit occours with the variables transmission type (AM), weight (WT), and quarter mile time (qsec). The table 01 shows the coefficients of the model with those regressors.
+\begin{center}
+```{r results="asis"}
+model <- lm(mpg ~ am + wt + qsec, mtcars)
+
+table01 <- xtable(summary(model)$coefficients, digits = c(NA, 2, 2, 2, 3), caption ="Model Coefficients - Factors: AM, WT, QSEC")
+print( table01, caption.placement = 'top', floating = FALSE ) 
+
+```
+\end{center}
+```{r confint}
+ammanual.est <- coef(model)["ammanual"]
+ammanual.confint <- confint(model, "ammanual")
+```
+
+But let's compare with a model where all factors are predictors.
+\begin{center}
+```{r results="asis"}
+model2 <- lm(mpg~.,mtcars)
+
+table02 <- xtable(summary(model2)$coefficients, digits = c(NA, 2, 2, 2, 3),  caption ="Model Coefficients - All Factors")
+print( table02, caption.placement = 'top',comment = FALSE, floating = FALSE ) 
+```
+\end{center}
+```{r confint2}
+ammanual2.est <- coef(model2)["ammanual"]
+ammanual2.confint <- confint(model2, "ammanual")
+```
+
+The Analyse of Variance for the model with only 3 regressors and the model with all of them.
+\begin{center}
+```{r results="asis" }
+
+ANOVA_models <- anova(model, model2)
+
+table03 <- xtable(ANOVA_models,  caption ="ANOVA for model 01 and 02")
+
+print( table03, caption.placement = 'top',comment = FALSE, floating = FALSE) 
+
+```
+\end{center}
+
+Notice that RSS for model2 provides a better Rsquared but the overall P value is large, the data do not give any reason to conclude that the means differ and indicates that this could constitute overfitting. 
+
+The quality of the fit can be evaluated using the residual and Q-Q plots (Appendix B). In the residuals chart there is no visible pattern so it can be said that the residuals are normally distributed and homoscedastic. In the Q-Q chart most of the points lie on the line $y=x$, showing that the model is fitting the data.
+
+## Conclusions
+
+As shown the best model is the one with the variables Transmission, Weight, and Quarter Mile Time.
+
+\begin{center}
+$mpg_i = \beta_0 + \beta_1 am_i + \beta_2 wt_i + \beta_3 qsec_i$
+\end{center}
+
+The coefficient `ammanual` quantifies the effect of the transmission type when weight and 1/4 mile time has been adjusted for. The P value is less than 0.05 (Table 1), so we conclude that, with a 95 % probability, `ammanual` differs from zero and the gas mileage difference between manual and automatic transmissions is a significant factor. According to our model, using a manual transmission as opposed to automatic leads to a `r round(coef(model)["ammanual"], 2)` mpg increase in the gas mileage. The  confidence interval for this analysis is $[`r round(ammanual.confint[1], 2)`, `r round(ammanual.confint[2], 2)`]$. In other words, the manual transmission shows better mileage than the automatic transmission.
+
 
 ## Sources
 
  * Brian Caffo, "Regression Models for Data Science in R" (2015). 
  * Harold V. Henderson and Paul F. Velleman, "Building Multiple Regression Models Interactively," *Biometrics* **37** (1981), pp. 391--411. http://www.jstor.org/stable/2530428
+ 
+## Source code
+
+Complete R Markdown source is available in GitHub: https://github.com/RUSCZAK/Regression_Models_Coursera
  
 \pagebreak
 
@@ -89,8 +155,8 @@ In the chart above is shown that the mean gas mileage of cars with manual transm
 
 
 ```{r results="asis"}
-table01 <- xtable(mtcars, caption ="(1973-74) models)\n")
-print( table01, caption.placement = 'top',comment = FALSE ) 
+table04 <- xtable(mtcars, caption ="(1973-74) models)\n")
+print( table04, caption.placement = 'top',comment = FALSE ) 
 ```
 [1]	mpg	Miles/(US) gallon
 
@@ -114,7 +180,21 @@ print( table01, caption.placement = 'top',comment = FALSE )
 
 [11]	carb	Number of carburetors
 
-[12] pwr power-to-weight ratio
 \pagebreak
 
 ## Appendix B
+
+```{r pairsplot, cache=TRUE, fig.width=12, fig.height=12, out.width="12in", out.height="6in"}
+
+paircols <- c("mpg", "wt", "disp", "hp" ,"qsec")
+gpairs <- ggpairs(mtcars, aes(color = am),
+            columns = match(paircols, names(mtcars)))
+gpairs
+```
+
+```{r plotresid, out.width="5in", out.height="5in", fig.width=10, fig.height=5}
+
+par(mfrow=c(2,2))
+plot(model)
+
+```
