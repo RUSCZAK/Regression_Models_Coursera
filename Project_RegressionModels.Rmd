@@ -1,0 +1,120 @@
+---
+title: 'Project: Impact of transmission type on fuel efficiency'
+author: "Jean Rusczak"
+date: "September 18, 2016"
+#output: pdf_document
+output:
+    pdf_document:
+      includes:
+        in_header: header.tex
+      latex_engine: xelatex
+mainfont: "texgyretermes-regular.otf"
+mathfont: "texgyretermes-math.otf"
+fontsize: 10pt
+classoption: a4paper
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, fig.width=6, fig.height=4, fig.align='center')
+
+```
+
+## Executive Summary
+
+In this analysis the effect of transmission (manual or automatic) on fuel efficiency is evaluated. 
+
+## Processing
+
+The collected data (Appendix A - Table 1) consists of 32 automobile models with some of their characteristics measured. 
+
+
+
+```{r init}
+
+library(datasets)
+data("mtcars")
+
+
+library(ggplot2)
+library(xtable)
+library(GGally)
+library(dplyr)
+library(ggfortify)
+
+
+# Disable the LaTeX comment from the output of print.xtable,
+# enable booktabs style table output
+options(xtable.comment = FALSE, xtable.booktabs = TRUE)
+
+```
+
+
+## Exploratory data analysis 
+
+
+
+```{r explore}
+
+# Convert transmission type and engine type to factor variables
+mtcars$am <- factor(mtcars$am, levels = c(0, 1),
+                    labels = c("auto", "manual"))
+mtcars$vs <- factor(mtcars$vs, levels = c(0, 1),
+                    labels = c("v", "straight"))
+# Create a new variable for gross power/weight ratio
+mtcars$pwr <- mtcars$hp/mtcars$wt
+
+g <- ggplot(mtcars, aes(x = wt, y = mpg))
+g <- g + geom_point(aes(color = am))
+g <- g + geom_hline(aes(yintercept = mpg, color = am),
+                    data = aggregate(mpg ~ am, data = mtcars, mean),
+                    linetype = "dashed")
+g <- g + ggtitle("Gas mileage vs. weight")
+g <- g + labs(x="Weight",y="MPG") 
+
+g
+```
+
+In the chart above is shown that the mean gas mileage of cars with manual transmission is higher compared to cars with automatic transmission. It can also be seen that there is a negative correlation between the fuel efficiency (gas mileage) and the weight of the vehicle. So other factors must be considered in the fitting model in order to have a better understanding of the impact of transmission on fuel efficiency.
+
+
+## Sources
+
+ * Brian Caffo, "Regression Models for Data Science in R" (2015). 
+ * Harold V. Henderson and Paul F. Velleman, "Building Multiple Regression Models Interactively," *Biometrics* **37** (1981), pp. 391--411. http://www.jstor.org/stable/2530428
+ 
+\pagebreak
+
+## Appendix A
+
+
+
+```{r results="asis"}
+table01 <- xtable(mtcars, caption ="(1973-74) models)\n")
+print( table01, caption.placement = 'top',comment = FALSE ) 
+```
+[1]	mpg	Miles/(US) gallon
+
+[2]	cyl	Number of cylinders
+
+[3]	disp	Displacement (cu.in.)
+
+[4]	hp	Gross horsepower
+
+[5]	drat	Rear axle ratio
+
+[6]	wt	Weight (1000 lbs)
+
+[7]	qsec	1/4 mile time
+
+[8]	vs	Engine type V or Straight
+
+[9]	am	Transmission (0 = automatic, 1 = manual)
+
+[10]	gear	Number of forward gears
+
+[11]	carb	Number of carburetors
+
+[12] pwr power-to-weight ratio
+\pagebreak
+
+## Appendix B
